@@ -8,12 +8,12 @@ from PIL import Image
 import io
 import numpy as np
 
-# Import keras si disponible
-try:
-    from tensorflow import keras
-    loaded_model = keras.models.load_model('mnist_cnn_model.h5')
-except Exception:
-    loaded_model = None
+# TODO: Importez keras depuis tensorflow
+# TODO: from tensorflow import keras
+
+# TODO: Chargez le modèle sauvegardé
+# TODO: loaded_model = keras.models.load_model('mnist_cnn_model.h5')
+# loaded_model = None
 
 
 def predict_digit(image_array, model):
