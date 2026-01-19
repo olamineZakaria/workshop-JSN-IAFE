@@ -4,18 +4,14 @@ Application Tkinter pour dessiner des chiffres et obtenir des prédictions MNIST
 
 import tkinter as tk
 from tkinter import Canvas, Button, Label
-from PIL import Image
-import io
+from PIL import Image, ImageDraw
 import numpy as np
-
-# TODO: Importez keras depuis tensorflow
-# TODO: from tensorflow import keras
-
-# TODO: Chargez le modèle sauvegardé
-# TODO: loaded_model = keras.models.load_model('mnist_cnn_model.h5')
-# loaded_model = None
+from tensorflow import keras
 
 
+# Chargez le modèle sauvegardé
+loaded_model = keras.models.load_model('mnist_cnn_model.h5')
+ 
 def predict_digit(image_array, model):
     """Prédit le chiffre dans une image"""
     if image_array.max() > 1.0:
@@ -43,9 +39,13 @@ class DigitDrawer:
         self.canvas = Canvas(root, width=280, height=280, bg='white', cursor='cross')
         self.canvas.pack(pady=20)
         
+        # Créer une image PIL pour le dessin
+        self.image = Image.new('L', (280, 280), color=255)
+        self.draw = ImageDraw.Draw(self.image)
+        
         self.last_x = None
         self.last_y = None
-        self.canvas.bind('<B1-Motion>', self.draw)
+        self.canvas.bind('<B1-Motion>', self.draw_on_canvas)
         self.canvas.bind('<ButtonPress-1>', self.start_draw)
         self.canvas.bind('<ButtonRelease-1>', self.stop_draw)
         
@@ -71,15 +71,21 @@ class DigitDrawer:
         self.last_x = None
         self.last_y = None
     
-    def draw(self, event):
+    def draw_on_canvas(self, event):
         if self.last_x and self.last_y:
+            # Dessiner sur le canvas Tkinter
             self.canvas.create_line(self.last_x, self.last_y, event.x, event.y,
                                     width=15, fill='black', capstyle=tk.ROUND, smooth=tk.TRUE)
+            # Dessiner sur l'image PIL
+            self.draw.line([self.last_x, self.last_y, event.x, event.y], fill=0, width=15)
         self.last_x = event.x
         self.last_y = event.y
     
     def clear_canvas(self):
         self.canvas.delete('all')
+        # Réinitialiser l'image PIL
+        self.image = Image.new('L', (280, 280), color=255)
+        self.draw = ImageDraw.Draw(self.image)
         self.prediction_label.config(text='Dessinez un chiffre')
         self.prob_label.config(text='')
     
@@ -88,11 +94,10 @@ class DigitDrawer:
             self.prediction_label.config(text='Modèle non chargé')
             return
         
-        ps = self.canvas.postscript(colormode='color')
-        img = Image.open(io.BytesIO(ps.encode('utf-8')))
-        img = img.convert('L')
-        img = img.resize((28, 28), Image.LANCZOS if hasattr(Image, 'LANCZOS') else Image.Resampling.LANCZOS)
+        # Redimensionner l'image à 28x28
+        img = self.image.resize((28, 28), Image.LANCZOS if hasattr(Image, 'LANCZOS') else Image.Resampling.LANCZOS)
         
+        # Convertir en array numpy et inverser (blanc->noir, noir->blanc)
         img_array = np.array(img)
         img_array = 255 - img_array
         img_array = img_array.astype('float32') / 255.0
